@@ -41,9 +41,9 @@ CREATE TABLE IF NOT EXISTS content.genre_film_work (
     created timestamp with time zone
 );
 
-CREATE INDEX film_work_creation_rating_idx ON content.film_work (creation_date, rating)
+CREATE INDEX film_work_creation_rating_idx ON content.film_work (creation_date, rating);
 
-CREATE INDEX preson_full_name_idx ON content.person (full_name)
+CREATE INDEX preson_full_name_idx ON content.person (full_name);
 
 CREATE UNIQUE INDEX film_work_person_idx ON content.person_film_work (film_work_id, person_id);
 
