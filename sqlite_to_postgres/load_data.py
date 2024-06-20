@@ -1,19 +1,19 @@
-import io
 import sqlite3
-
 import psycopg
-from typing import Generator
+
 from psycopg.rows import dict_row
-from dataclasses import astuple
-
-from psycopg.errors import UniqueViolation, BadCopyFileFormat, OperationalError
-
 from contextlib import contextmanager
-
 from loguru import logger
 
-from src.data_description import Filmwork
 from src.db_connection import SQLiteLoader, PostgresSaver
+
+from src.data_description import (
+    Filmwork,
+    Genre,
+    Person,
+    GenreFilmWork,
+    PersonFilmWork,
+)
 from src.constants import (
     SQLITE_PATH,
     PSQL_DB_NAME,
@@ -45,12 +45,29 @@ def load_from_sqlite(
     postgres_saver = PostgresSaver(pg_conn)
     sqlite_loader = SQLiteLoader(connection)
 
-    for data in sqlite_loader.load_movies():
-        postgres_saver.upload_movies(data)
-    # postgres_saver.check_connection()
+    timestamped_tables = {
+        "film_work": Filmwork,
+        "genre": Genre,
+        "person": Person,
+    }
 
-    # data = sqlite_loader.load_movies()
-    # postgres_saver.save_all_data(data)
+    relation_tables = {
+        "genre_film_work": GenreFilmWork,
+        "person_film_work": PersonFilmWork,
+    }
+
+    try:
+        for table, data_class in timestamped_tables.items():
+            for data in sqlite_loader.load_timestamped(table, data_class):
+                logger.info(f"Uploading {table} batch...")
+                postgres_saver.upload_data(data, table_name=table)
+
+        for table, data_class in relation_tables.items():
+            for data in sqlite_loader.load_relational(table, data_class):
+                logger.info(f"Uploading {table} batch...")
+                postgres_saver.upload_data(data, table_name=table)
+    except Exception as e:
+        logger.error(f"Unknown exception: {e}")
 
 
 if __name__ == "__main__":
@@ -61,12 +78,7 @@ if __name__ == "__main__":
         "host": PSQL_HOST,
         "port": PSQL_PORT,
     }
-    try:
-        with conn_context(SQLITE_PATH) as sqlite_conn, psycopg.connect(
-            **dsl, row_factory=dict_row, cursor_factory=psycopg.ClientCursor
-        ) as pg_conn:  # type: ignore
-            load_from_sqlite(sqlite_conn, pg_conn)
-    except UniqueViolation as e:
-        logger.error(
-            f"Failed to upload data, unique field already exists: {e}"
-        )
+    with conn_context(SQLITE_PATH) as sqlite_conn, psycopg.connect(
+        **dsl, row_factory=dict_row, cursor_factory=psycopg.ClientCursor
+    ) as pg_conn:  # type: ignore
+        load_from_sqlite(sqlite_conn, pg_conn)
