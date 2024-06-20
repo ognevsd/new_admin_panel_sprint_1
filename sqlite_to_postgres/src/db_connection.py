@@ -24,14 +24,13 @@ class SQLiteLoader:
         self.connection = connection
 
     def load_data_in_chunks(self, query: str):
-        with self.connection:
-            curs = self.connection.cursor()
-            curs.execute(query)
-            while True:
-                result = curs.fetchmany(SQLITE_CHUNK_SIZE)
-                if not result:
-                    return None
-                yield result
+        curs = self.connection.cursor()
+        curs.execute(query)
+        while True:
+            result = curs.fetchmany(SQLITE_CHUNK_SIZE)
+            if not result:
+                return None
+            yield result
 
     def load_timestamped(self, table_name: str, _dataclass):
         data = self.load_data_in_chunks(f"SELECT * FROM {table_name};")
@@ -56,11 +55,17 @@ class SQLiteLoader:
 
     def count_items_in_table(self, table_name: str):
         query = f"SELECT COUNT(*) FROM {table_name};"
-        with self.connection:
-            curs = self.connection.cursor()
-            curs.execute(query)
-            result = dict(curs.fetchone())
+        curs = self.connection.cursor()
+        curs.execute(query)
+        result = dict(curs.fetchone())
         return result.get("COUNT(*)")
+
+    def execute_query_with_limit_and_offset(
+        self, query: str, limit: int, offset: int
+    ):
+        curs = self.connection.cursor()
+        curs.execute(query, (limit, offset))
+        return curs.fetchall()
 
 
 class PostgresSaver:
@@ -96,8 +101,14 @@ class PostgresSaver:
         self, table_name: str, schema_name: str = "content"
     ):
         query = f"SELECT COUNT(*) FROM {schema_name}.{table_name};"
-        with self.connection:
-            curs = self.connection.cursor()
-            curs.execute(query)
-            result = curs.fetchone()
+        curs = self.connection.cursor()
+        curs.execute(query)
+        result = curs.fetchone()
         return result.get("count")
+
+    def execute_query_with_limit_and_offset(
+        self, query: str, limit: int, offset: int
+    ):
+        curs = self.connection.cursor()
+        curs.execute(query, (limit, offset))
+        return curs.fetchall()
