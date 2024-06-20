@@ -2,10 +2,9 @@ import sqlite3
 import psycopg
 
 from psycopg.rows import dict_row
-from contextlib import contextmanager
 from loguru import logger
 
-from src.db_connection import SQLiteLoader, PostgresSaver
+from src.db_connection import SQLiteLoader, PostgresSaver, conn_context
 
 from src.data_description import (
     Filmwork,
@@ -26,16 +25,6 @@ from src.constants import (
 
 if len(SQLITE_PATH) == 0:
     raise Exception("Missing sqlite connection")
-
-
-@contextmanager
-def conn_context(db_path: str):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
 
 
 def load_from_sqlite(

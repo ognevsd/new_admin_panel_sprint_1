@@ -2,9 +2,21 @@ import sqlite3
 import psycopg
 
 from dataclasses import astuple
+from contextlib import contextmanager
+
 
 from .data_description import DatabaseItem
 from .constants import SQLITE_CHUNK_SIZE
+
+
+@contextmanager
+def conn_context(db_path: str):
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 class SQLiteLoader:
@@ -42,6 +54,14 @@ class SQLiteLoader:
                 final.append(_dataclass(**item))
             yield final
 
+    def count_items_in_table(self, table_name: str):
+        query = f"SELECT COUNT(*) FROM {table_name};"
+        with self.connection:
+            curs = self.connection.cursor()
+            curs.execute(query)
+            result = dict(curs.fetchone())
+        return result.get("COUNT(*)")
+
 
 class PostgresSaver:
     def __init__(self, connection: psycopg.Connection):
@@ -71,3 +91,13 @@ class PostgresSaver:
         )
 
         cursor.execute(query)
+
+    def count_items_in_table(
+        self, table_name: str, schema_name: str = "content"
+    ):
+        query = f"SELECT COUNT(*) FROM {schema_name}.{table_name};"
+        with self.connection:
+            curs = self.connection.cursor()
+            curs.execute(query)
+            result = curs.fetchone()
+        return result.get("count")
