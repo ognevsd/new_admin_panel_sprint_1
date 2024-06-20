@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from loguru import logger
 
 from src.data_description import Filmwork
+from src.db_connection import SQLiteLoader, PostgresSaver
 from src.constants import (
     SQLITE_PATH,
     PSQL_DB_NAME,
@@ -20,7 +21,6 @@ from src.constants import (
     PSQL_PASSWORD,
     PSQL_HOST,
     PSQL_PORT,
-    SQLITE_CHUNK_SIZE,
 )
 
 
@@ -36,53 +36,6 @@ def conn_context(db_path: str):
         yield conn
     finally:
         conn.close()
-
-
-class SQLiteLoader:
-    def __init__(self, connection: sqlite3.Connection):
-        self.connection = connection
-
-    def load_data_in_chunks(self, query: str):
-        with self.connection:
-            curs = self.connection.cursor()
-            curs.execute(query)
-            while True:
-                result = curs.fetchmany(SQLITE_CHUNK_SIZE)
-                if not result:
-                    return None
-                yield result
-
-    def load_movies(self):
-        movie_data = self.load_data_in_chunks("SELECT * FROM film_work;")
-        for chunk in movie_data:
-            movies = []
-            movies_csv = io.StringIO()
-            for movie in chunk:
-                x = dict(movie)
-                x["created"] = x.pop("created_at")
-                x["modified"] = x.pop("updated_at")
-                x = Filmwork(**x)
-                movies.append(x)
-                movies_csv.write(x.to_csv())
-            movies_csv.seek(0)
-            yield movies_csv
-
-
-class PostgresSaver:
-    def __init__(self, connection: psycopg.Connection):
-        self.connection = connection
-
-    def check_connection(self):
-        curr = pg_conn.cursor()
-        curr.execute("SELECT COUNT(*) FROM content.film_work")
-        print(curr.fetchall())
-
-    def upload_movies(self, movies_csv: io.StringIO):
-        cursor = self.connection.cursor()
-        with cursor.copy(
-            """COPY content.film_work FROM STDIN (FORMAT 'csv', HEADER false, DELIMITER E'\t')"""
-        ) as copy:
-            copy.write(movies_csv.read())
 
 
 def load_from_sqlite(
