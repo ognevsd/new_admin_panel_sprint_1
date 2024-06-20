@@ -10,3 +10,18 @@
 - Данные загружаются пачками по n записей.
 - Повторный запуск скрипта не создаёт дублирующиеся записи.
 - В коде есть обработка ошибок записи и чтения.
+
+## Running the script
+
+1. Activate virtual environment
+```bash
+ source .venv/bin/activate
+```
+2. Run the copy script
+```bash
+python load_data.py
+```
+3. Run checks
+```bash
+pytest
+```
