@@ -97,6 +97,11 @@ class GenreFilmwork(UUIDMixin):
 
     class Meta:
         db_table = 'content"."genre_film_work'
+        constraints = [
+            models.UniqueConstraint(
+                fields=["film_work", "genre"], name="unique_genre"
+            )
+        ]
 
 
 class PersonFilmwork(UUIDMixin):
@@ -107,3 +112,9 @@ class PersonFilmwork(UUIDMixin):
 
     class Meta:
         db_table = 'content"."person_film_work'
+        constraints = [
+            models.UniqueConstraint(
+                fields=["film_work", "person", "role"],
+                name="unique_person_role",
+            )
+        ]
