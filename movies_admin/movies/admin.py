@@ -4,10 +4,12 @@ from .models import Genre, Filmwork, GenreFilmwork, Person, PersonFilmwork
 
 class GenreFilmworkInline(admin.TabularInline):
     model = GenreFilmwork
+    autocomplete_fields = ("genre",)
 
 
 class PersonFilmworkInline(admin.TabularInline):
     model = PersonFilmwork
+    autocomplete_fields = ("person",)
 
 
 # Register your models here.
